@@ -1,16 +1,16 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Button, Tabs, Tab, Badge, Col, Row } from "react-bootstrap";
+import React, { lazy, useEffect, useMemo, useState } from "react";
+import { Badge, Button, Col, Row, Tab, Tabs } from "react-bootstrap";
 import { FormattedMessage, useIntl } from "react-intl";
-import { useParams, useHistory } from "react-router-dom";
+import { useHistory, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import cx from "classnames";
 import Mousetrap from "mousetrap";
 import * as GQL from "src/core/generated-graphql";
 import {
-  useFindPerformer,
-  usePerformerUpdate,
-  usePerformerDestroy,
   mutateMetadataAutoTag,
+  useFindPerformer,
+  usePerformerDestroy,
+  usePerformerUpdate,
 } from "src/core/StashService";
 import {
   CountryFlag,
@@ -27,7 +27,6 @@ import { PerformerScenesPanel } from "./PerformerScenesPanel";
 import { PerformerGalleriesPanel } from "./PerformerGalleriesPanel";
 import { PerformerMoviesPanel } from "./PerformerMoviesPanel";
 import { PerformerImagesPanel } from "./PerformerImagesPanel";
-import { PerformerEditPanel } from "./PerformerEditPanel";
 import { PerformerSubmitButton } from "./PerformerSubmitButton";
 import GenderIcon from "../GenderIcon";
 import {
@@ -36,10 +35,14 @@ import {
   faHeart,
   faLink,
 } from "@fortawesome/free-solid-svg-icons";
+import { ConfigurationContext } from "../../../hooks/Config";
+
+const PerformerEditPanel = lazy(() => import("./PerformerEditPanel"));
 
 interface IProps {
   performer: GQL.PerformerDataFragment;
 }
+
 interface IPerformerParams {
   tab?: string;
 }
@@ -435,6 +438,19 @@ const PerformerPage: React.FC<IProps> = ({ performer }) => {
 const PerformerLoader: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const { data, loading, error } = useFindPerformer(id ?? "");
+  const { configuration } = React.useContext(ConfigurationContext);
+  const [showScrubber, setShowScrubber] = useState(
+    configuration?.interface.showScrubber ?? true
+  );
+
+  // set up hotkeys
+  useEffect(() => {
+    Mousetrap.bind(".", () => setShowScrubber(!showScrubber));
+
+    return () => {
+      Mousetrap.unbind(".");
+    };
+  });
 
   if (loading) return <LoadingIndicator />;
   if (error) return <ErrorMessage error={error.message} />;
